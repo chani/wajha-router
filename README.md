@@ -24,7 +24,7 @@ Hybrid HTTP router for PHP 8.5+ combining an $O(1)$ static lookup table with fir
 ## Installation
 
 ```bash
-composer require safi/wajha
+composer require chani/wajha
 ```
 
 ---

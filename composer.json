@@ -1,5 +1,5 @@
 {
-    "name": "safi/wajha",
+    "name": "chani/wajha",
     "description": "A zero-allocation hybrid HTTP router for PHP 8.5+ combining O(1) static maps and bucketed PCRE2 regex evaluation.",
     "type": "library",
     "license": "MIT",
