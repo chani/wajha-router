@@ -1,6 +1,11 @@
 <?php
-
-// Installation: composer require --dev phroute/phroute
+/**
+ * Safi/Wajha Router
+ * @author Jean Bruenn
+ * @copyright 2026 All Rights Reserved
+ * @see https://github.com/chani/wajha-router
+ * @see https://packagist.org/packages/chani/wajha
+ */
 
 declare(strict_types=1);
 
@@ -27,5 +32,5 @@ return [
             $dispatcher->dispatch($req['method'], $req['uri']);
         } catch (\Throwable $e) {
         }
-    }
+    },
 ];

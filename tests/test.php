@@ -1,4 +1,11 @@
 <?php
+/**
+ * Safi/Wajha Router
+ * @author Jean Bruenn
+ * @copyright 2026 All Rights Reserved
+ * @see https://github.com/chani/wajha-router
+ * @see https://packagist.org/packages/chani/wajha
+ */
 
 declare(strict_types=1);
 
@@ -12,9 +19,9 @@ use Safi\Wajha\WajhaDispatcher;
 // ============================================================================
 
 $config = [
-    'num_routes'   => 1000,
+    'num_routes' => 1000,
     'num_requests' => 2000,
-    'iterations'   => 100000,
+    'iterations' => 100000,
 ];
 
 // ============================================================================
@@ -120,9 +127,9 @@ function generateRandomRoutes(int $count): array
         }
 
         $routes[] = [
-            'method'  => $method,
-            'path'    => $path,
-            'handler' => "handler_id_" . count($routes)
+            'method' => $method,
+            'path' => $path,
+            'handler' => "handler_id_" . count($routes),
         ];
     }
 
@@ -142,8 +149,8 @@ function generateTestRequests(array $routes, int $count): array
             $path = str_replace(['[', ']'], '', $route['path']);
             $path = str_replace(
                 ['{id:\d+}', '{slug:[a-z-]+}', '{uuid:[0-9a-f]{8}}'],
-                [(string)rand(1, 99999), 'sample-product-slug', 'deadbeef'],
-                $path
+                [(string) rand(1, 99999), 'sample-product-slug', 'deadbeef'],
+                $path,
             );
             $requests[] = ['method' => $route['method'], 'uri' => $path];
         } elseif ($type < 85 && !empty($routes)) {
@@ -211,7 +218,7 @@ $registeredBenchmarks[] = [
     },
     'dispatch' => function (WajhaDispatcher $dispatcher, array $req) {
         return $dispatcher->dispatch($req['method'], $req['uri']);
-    }
+    },
 ];
 
 // ============================================================================
@@ -302,9 +309,9 @@ foreach ($registeredBenchmarks as $bench) {
     $totalTime = microtime(true) - $start;
 
     $results[] = [
-        'name'        => $bench['name'],
-        'time'        => $totalTime,
-        'rps'         => $config['iterations'] / $totalTime,
+        'name' => $bench['name'],
+        'time' => $totalTime,
+        'rps' => $config['iterations'] / $totalTime,
         'avg_latency' => ($totalTime / $config['iterations']) * 1000000,
     ];
 }
@@ -318,7 +325,7 @@ foreach ($results as $res) {
         "%-20s | %10s/s | %11.3f µs\n",
         $res['name'],
         number_format($res['rps'], 0, ',', '.'),
-        $res['avg_latency']
+        $res['avg_latency'],
     );
 }
 

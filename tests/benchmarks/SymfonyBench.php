@@ -1,6 +1,11 @@
 <?php
-
-// Installation: composer require --dev symfony/routing
+/**
+ * Safi/Wajha Router
+ * @author Jean Bruenn
+ * @copyright 2026 All Rights Reserved
+ * @see https://github.com/chani/wajha-router
+ * @see https://packagist.org/packages/chani/wajha
+ */
 
 declare(strict_types=1);
 
@@ -77,7 +82,7 @@ return [
                     path: $cleanPath,
                     defaults: ['_controller' => $route['handler']],
                     requirements: $reqs,
-                    methods: [$route['method']]
+                    methods: [$route['method']],
                 );
                 $symfonyRoutes->add("route_{$i}_{$subIdx}", $sfRoute);
             }
@@ -97,5 +102,5 @@ return [
             $runner['matcher']->match($req['uri']);
         } catch (\Throwable $e) {
         }
-    }
+    },
 ];

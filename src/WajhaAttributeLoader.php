@@ -1,4 +1,11 @@
 <?php
+/**
+ * Safi/Wajha Router
+ * @author Jean Bruenn
+ * @copyright 2026 All Rights Reserved
+ * @see https://github.com/chani/wajha-router
+ * @see https://packagist.org/packages/chani/wajha
+ */
 
 declare(strict_types=1);
 
@@ -35,8 +42,8 @@ class WajhaAttributeLoader
                         $middleware = property_exists($instance, 'middleware') && is_array($instance->middleware) ? $instance->middleware : [];
 
                         $handler = [
-                            'handler'    => [$className, $method->getName()],
-                            'public'     => $isPublic,
+                            'handler' => [$className, $method->getName()],
+                            'public' => $isPublic,
                             'middleware' => $middleware,
                         ];
                     }
@@ -49,7 +56,7 @@ class WajhaAttributeLoader
                     $compiler->addRoute(
                         strtoupper($httpMethod),
                         $path,
-                        $handler
+                        $handler,
                     );
                 }
             }

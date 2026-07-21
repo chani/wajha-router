@@ -1,6 +1,11 @@
 <?php
-
-// Installation: composer require --dev altorouter/altorouter
+/**
+ * Safi/Wajha Router
+ * @author Jean Bruenn
+ * @copyright 2026 All Rights Reserved
+ * @see https://github.com/chani/wajha-router
+ * @see https://packagist.org/packages/chani/wajha
+ */
 
 declare(strict_types=1);
 
@@ -17,7 +22,7 @@ return [
                 $altoPath = preg_replace(
                     ['~\{([a-zA-Z0-9_]+):\d+\}~', '~\{([a-zA-Z0-9_]+):[a-z-]+\}~', '~\{([a-zA-Z0-9_]+):[0-9a-f]\{8\}\}~'],
                     ['[i:$1]', '[a:$1]', '[h:$1]'],
-                    $p
+                    $p,
                 );
                 $router->map($route['method'], $altoPath, $route['handler']);
             }
@@ -26,5 +31,5 @@ return [
     },
     'dispatch' => function (\AltoRouter $router, array $req) {
         $router->match($req['uri'], $req['method']);
-    }
+    },
 ];

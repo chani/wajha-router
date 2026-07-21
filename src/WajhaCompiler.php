@@ -1,4 +1,11 @@
 <?php
+/**
+ * Safi/Wajha Router
+ * @author Jean Bruenn
+ * @copyright 2026 All Rights Reserved
+ * @see https://github.com/chani/wajha-router
+ * @see https://packagist.org/packages/chani/wajha
+ */
 
 declare(strict_types=1);
 
@@ -21,9 +28,9 @@ class WajhaCompiler
      * @var array<string, string>
      */
     private const array SHORTHANDS = [
-        ':int}'   => ':\d+}',
-        ':uuid}'  => ':[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}}',
-        ':slug}'  => ':[a-z0-9-]+}',
+        ':int}' => ':\d+}',
+        ':uuid}' => ':[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}}',
+        ':slug}' => ':[a-z0-9-]+}',
         ':alpha}' => ':[a-zA-Z]+}',
     ];
 
@@ -99,8 +106,8 @@ class WajhaCompiler
 
             if (enum_exists($class) && is_subclass_of($class, BackedEnum::class)) {
                 $cases = array_map(
-                    static fn (BackedEnum $case): string => preg_quote((string) $case->value, '~'),
-                    $class::cases()
+                    static fn(BackedEnum $case): string => preg_quote((string) $case->value, '~'),
+                    $class::cases(),
                 );
                 return '{' . $paramName . ':' . implode('|', $cases) . '}';
             }
@@ -250,7 +257,7 @@ class WajhaCompiler
                     }
 
                     $compiledDynamic[$method][$firstChar][] = [
-                        'regex'    => '~(?J)^(?:' . implode('|', $patterns) . ')$~u',
+                        'regex' => '~(?J)^(?:' . implode('|', $patterns) . ')$~u',
                         'handlers' => $handlers,
                     ];
                 }
@@ -258,7 +265,7 @@ class WajhaCompiler
         }
 
         return [
-            'static'  => $this->staticRoutes,
+            'static' => $this->staticRoutes,
             'dynamic' => $compiledDynamic,
         ];
     }

@@ -1,6 +1,11 @@
 <?php
-
-// Installation: composer require --dev nikic/fast-route
+/**
+ * Safi/Wajha Router
+ * @author Jean Bruenn
+ * @copyright 2026 All Rights Reserved
+ * @see https://github.com/chani/wajha-router
+ * @see https://packagist.org/packages/chani/wajha
+ */
 
 declare(strict_types=1);
 
@@ -19,5 +24,5 @@ return [
     },
     'dispatch' => function ($dispatcher, array $req) {
         return $dispatcher->dispatch($req['method'], $req['uri']);
-    }
+    },
 ];
