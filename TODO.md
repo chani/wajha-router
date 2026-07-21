@@ -2,6 +2,14 @@
 
 ## To Evaluate
 
+- [ ] **Native PCRE Optional Segment Compilation**
+  - Evaluate compiling optional path segments (`[/...]`) directly into native PCRE non-capturing optional groups `(?:...)?` inside dynamic chunks instead of combinatorial route expansion.
+  - Assess memory footprint savings during compilation versus potential runtime PCRE evaluation impact for deeply nested optional routes.
+
+- [ ] **Secondary Bucketing for Root-Variable Routes**
+  - Evaluate alternative bucketing strategies for paths starting with dynamic segments (e.g., `/{userId}/...`) to avoid fallback to the generic `'*'` bucket.
+  - Explore segment count/depth partitioning or static prefix extraction following the dynamic parameter to maintain high throughput in variable-heavy URL structures.
+
 - [ ] **Domain & Subdomain Routing**
   - Evaluate support for host-based match constraints (e.g., `{subdomain}.example.com`).
   - Assess memory and compile-time pattern complexity impact for multi-domain applications.
