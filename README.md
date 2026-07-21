@@ -1,18 +1,16 @@
 # Safi/Wajha Router
 
-Hybrid HTTP router for PHP 8.5+ combining an $O(1)$ static lookup table with first-character bucketed PCRE2 chunked regex evaluation for dynamic routes.
+A fast, lightweight HTTP router for PHP 8.5+ combining $O(1)$ static hash map lookups with first-character bucketed PCRE2 regex evaluation for dynamic routes.
 
 ---
 
 ## Technical Features
 
-## Technical Features
-
-* **O(1) Static Lookup:** Direct 2D array hashmap access (`$staticRoutes[$method][$uri]`) bypassing the regex engine entirely.
-* **First-Character Bucketing:** Dynamic routes are partitioned by path prefix to eliminate scanning unrelated route trees.
-* **PCRE2 Chunked Matching:** Dynamic paths evaluate in 30-route chunks via native `(?J)` duplicate groups and `(*MARK:N)` identifiers inside C-level PCRE2.
-* **Zero-Recursion Architecture:** Flat execution flow without function frame stack overhead during dispatch.
-* **Compile-Time Transformations:** Type shorthands, enum constraints, and route groups compile down to raw PCRE2 patterns with zero runtime overhead.
+* **O(1) Static Fast-Path:** Direct 2D array lookup (`$staticRoutes[$method][$uri]`) bypassing the PCRE2 engine entirely.
+* **First-Character Path Bucketing:** Dynamic routes are partitioned by URI prefix to avoid evaluating unrelated regex chunks.
+* **PCRE2 Chunked Matching:** Dynamic paths are evaluated in 30-route chunks using native duplicate group names `(?J)` and `(*MARK:N)` identifiers directly inside PCRE2.
+* **Zero-Stack Dispatching:** Inlined execution path without VM function frame call stack overhead during dispatching.
+* **Compile-Time Transformations:** Type shorthands, enum constraints, and route groups compile down to raw PCRE2 patterns with no runtime overhead.
 
 ---
 
@@ -49,6 +47,7 @@ $compiler->post('/users', 'UserController@store');
 $compiledData = $compiler->compile();
 $dispatcher = new WajhaDispatcher($compiledData);
 
+// HTTP Method MUST be uppercase
 $result = $dispatcher->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
 
 switch ($result[0]) {
@@ -58,7 +57,7 @@ switch ($result[0]) {
         break;
 
     case WajhaDispatcher::METHOD_NOT_ALLOWED:
-        $allowedMethods = $result[2];
+        $allowedMethods = $result[1]; // Array of allowed HTTP methods
         break;
 
     case WajhaDispatcher::NOT_FOUND:
@@ -140,17 +139,17 @@ $compiler->get('/archive[/{year:int}]', 'ArchiveController@index');
 
 ## Benchmarks
 
-Evaluated over 100,000 request dispatch iterations against a 1,000 route dataset (70% valid routes, 15% method mismatches, 15% 404 targets).
+Evaluated on PHP 8.5 over 100,000 request dispatch iterations against a 1,000 route dataset (70% valid routes, 15% method mismatches, 15% 404 targets):
 
 | Engine | Throughput | Avg Latency | Speed Ratio |
 | :--- | :--- | :--- | :--- |
-| **Safi/Wajha** | **333,448 req/s** | **2.999 µs** | **Baseline (1.00x)** |
-| **nikic/FastRoute** | 115,068 req/s | 8.691 µs | 2.90x slower |
-| **Phroute** | 111,659 req/s | 8.956 µs | 2.99x slower |
-| **Symfony Routing** | 102,480 req/s | 9.758 µs | 3.25x slower |
-| **AltoRouter** | 4,170 req/s | 239.801 µs | 79.96x slower |
+| **Safi/Wajha** | **447,171 req/s** | **2.236 µs** | **Baseline (1.00x)** |
+| **nikic/FastRoute** | 129,006 req/s | 7.752 µs | 3.47x slower |
+| **Phroute** | 120,615 req/s | 8.291 µs | 3.71x slower |
+| **Symfony Routing** | 107,682 req/s | 9.287 µs | 4.15x slower |
+| **AltoRouter** | 4,205 req/s | 237.793 µs | 106.33x slower |
 
-For more background on the benchmark verification, trade-offs, and implementation details, see the write-up: [Writing a PHP 8.5 Router Faster Than FastRoute](https://blog.jeanbruenn.info/2026/07/21/writing-a-php-8-5-router-faster-than-fastroute/)
+For detailed insights into the architecture, Zend VM micro-benchmarks, and real-world scenario trade-offs, see the write-up: [Writing a PHP 8.5 Router Faster Than FastRoute](https://blog.jeanbruenn.info/2026/07/21/writing-a-php-8-5-router-faster-than-fastroute/)
 
 ---
 
@@ -159,6 +158,7 @@ For more background on the benchmark verification, trade-offs, and implementatio
 ```bash
 composer require --dev nikic/fast-route symfony/routing phroute/phroute altorouter/altorouter
 php tests/test.php
+php tests/run_realworld_bench.php
 ```
 
 ---
