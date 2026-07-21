@@ -155,7 +155,7 @@ class WajhaCompiler
     {
         $pattern = $this->parseRoutePattern($path);
 
-        $firstChar = $path[1] ?? '/';
+	$firstChar = isset($path[1]) ? $path[1] : '/';
         if ($firstChar === '{') {
             $firstChar = '*';
         }

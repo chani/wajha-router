@@ -60,7 +60,7 @@ class WajhaDispatcher
             return null;
         }
 
-        $firstChar = $uri[1] ?? '/';
+	$firstChar = isset($uri[1]) ? $uri[1] : '/';
         $chunks = $this->dynamicRoutes[$method][$firstChar] ?? [];
         if (isset($this->dynamicRoutes[$method]['*'])) {
             $chunks = array_merge($chunks, $this->dynamicRoutes[$method]['*']);
@@ -98,8 +98,8 @@ class WajhaDispatcher
         foreach ($this->dynamicRoutes as $m => $charMap) {
             if ($m === $currentMethod) {
                 continue;
-            }
-            $firstChar = $uri[1] ?? '/';
+	    }
+	    $firstChar = isset($uri[1]) ? $uri[1] : '/';
             $chunks = $charMap[$firstChar] ?? [];
             if (isset($charMap['*'])) {
                 $chunks = array_merge($chunks, $charMap['*']);
