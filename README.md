@@ -6,11 +6,13 @@ Hybrid HTTP router for PHP 8.5+ combining an $O(1)$ static lookup table with fir
 
 ## Technical Features
 
-* **$O(1)$ Static Lookup:** Direct 2D array hashmap access (`$staticRoutes[$method][$uri]`) bypassing the regex engine entirely.
+## Technical Features
+
+* **O(1) Static Lookup:** Direct 2D array hashmap access (`$staticRoutes[$method][$uri]`) bypassing the regex engine entirely.
 * **First-Character Bucketing:** Dynamic routes are partitioned by path prefix to eliminate scanning unrelated route trees.
 * **PCRE2 Chunked Matching:** Dynamic paths evaluate in 30-route chunks via native `(?J)` duplicate groups and `(*MARK:N)` identifiers inside C-level PCRE2.
 * **Zero-Recursion Architecture:** Flat execution flow without function frame stack overhead during dispatch.
-* **Compile-Time Transformations:** Type shorthands, enum constraints, and route groups compile down to raw PCRE2 patterns with **0.00 µs runtime penalty**.
+* **Compile-Time Transformations:** Type shorthands, enum constraints, and route groups compile down to raw PCRE2 patterns with zero runtime overhead.
 
 ---
 
@@ -147,6 +149,8 @@ Evaluated over 100,000 request dispatch iterations against a 1,000 route dataset
 | **Phroute** | 111,659 req/s | 8.956 µs | 2.99x slower |
 | **Symfony Routing** | 102,480 req/s | 9.758 µs | 3.25x slower |
 | **AltoRouter** | 4,170 req/s | 239.801 µs | 79.96x slower |
+
+For more background on the benchmark verification, trade-offs, and implementation details, see the write-up: [Writing a PHP 8.5 Router Faster Than FastRoute](https://blog.jeanbruenn.info/2026/07/21/writing-a-php-8-5-router-faster-than-fastroute/)
 
 ---
 
