@@ -4,127 +4,119 @@ declare(strict_types=1);
 
 namespace Safi\Wajha;
 
-class WajhaDispatcher 
+class WajhaDispatcher
 {
     public const NOT_FOUND = 0;
     public const FOUND = 1;
     public const METHOD_NOT_ALLOWED = 2;
 
-    private array $staticMap;
-    private array $compiledTrees;
+    private readonly array $staticRoutes;
+    private readonly array $dynamicRoutes;
 
-    public function __construct(array $compiledData) 
+    public function __construct(array $compiledData)
     {
-        $this->staticMap = $compiledData['static'] ?? [];
-        $this->compiledTrees = $compiledData['trees'] ?? $compiledData;
+        $this->staticRoutes = $compiledData['static'] ?? [];
+        $this->dynamicRoutes = $compiledData['dynamic'] ?? [];
     }
 
-    public function dispatch(string $method, string $uri): array 
+    public function dispatch(string $method, string $uri): array
     {
         $method = strtoupper($method);
 
         // 1. O(1) fast-path for static routes
-        if (isset($this->staticMap[$method][$uri])) {
-            return [self::FOUND, $this->staticMap[$method][$uri], []];
+        if (isset($this->staticRoutes[$method][$uri])) {
+            return [self::FOUND, $this->staticRoutes[$method][$uri], []];
         }
 
-        $len = strlen($uri);
-        $trimmedUri = $uri;
-        if ($len > 1 && $uri[$len - 1] === '/') {
-            $len--;
-            $trimmedUri = substr($uri, 0, $len);
-            if (isset($this->staticMap[$method][$trimmedUri])) {
-                return [self::FOUND, $this->staticMap[$method][$trimmedUri], []];
-            }
+        // 2. Fast combined PCRE2 match for dynamic routes
+        $dynamicMatch = $this->matchDynamic($method, $uri);
+        if ($dynamicMatch !== null) {
+            return $dynamicMatch;
         }
 
-        // 2. Pre-scanning slash positions
-        $slashes = [0];
-        $pos = 0;
-        while (($pos = strpos($uri, '/', $pos + 1)) !== false) {
-            if ($pos >= $len) break;
-            $slashes[] = $pos;
-        }
-        $slashes[] = $len;
-
-        // 3. Radix tree evaluation
-        if (isset($this->compiledTrees[$method])) {
-            $result = $this->search($this->compiledTrees[$method], $uri, 1, $slashes, $len);
-            if ($result !== null) {
-                return $result;
-            }
-        }
-
-        // Automatic HEAD -> GET fallback (RFC 9110 §9.3.2)
+        // 3. Automatic HEAD -> GET fallback (RFC 9110 §9.3.2)
         if ($method === 'HEAD') {
-            $headFallback = $this->dispatch('GET', $uri);
-            if ($headFallback[0] === self::FOUND) {
-                return $headFallback;
+            if (isset($this->staticRoutes['GET'][$uri])) {
+                return [self::FOUND, $this->staticRoutes['GET'][$uri], []];
+            }
+            $headDynamicMatch = $this->matchDynamic('GET', $uri);
+            if ($headDynamicMatch !== null) {
+                return $headDynamicMatch;
             }
         }
 
-        // 4. HTTP 405 check // 4. HTTP 405 check // 4. HTTP 405 Check & RFC 9110 §10.2.6 Allow-Header Array Generation RFC 9110 §10.2.6 Allow header generation RFC 9110 §10.2.6 Allow header generation
-        $allowedMethods = [];
-        foreach ($this->staticMap as $m => $map) {
-            if ($m === $method) continue;
-            if (isset($map[$uri]) || isset($map[$trimmedUri])) {
-                $allowedMethods[] = $m;
-            }
-        }
-
-        foreach ($this->compiledTrees as $m => $tree) {
-            if ($m === $method || in_array($m, $allowedMethods, true)) continue;
-            $result = $this->search($tree, $uri, 1, $slashes, $len);
-            if ($result !== null && $result[0] === self::FOUND) {
-                $allowedMethods[] = $m;
-            }
-        }
-
+        // 4. HTTP 405 check & RFC 9110 Allow header generation
+        $allowedMethods = $this->collectAllowedMethods($method, $uri);
         if (!empty($allowedMethods)) {
-            if (in_array('GET', $allowedMethods, true) && !in_array('HEAD', $allowedMethods, true)) {
-                $allowedMethods[] = 'HEAD';
-            }
-            return [self::METHOD_NOT_ALLOWED, [], $allowedMethods];
+            return [self::METHOD_NOT_ALLOWED, $allowedMethods]; // <--- 1:1 FastRoute Match!
         }
 
         return [self::NOT_FOUND, [], []];
     }
 
-    private function search(array $node, string $uri, int $segmentIdx, array &$slashes, int $len): ?array
+    private function matchDynamic(string $method, string $uri): ?array
     {
-        if ($segmentIdx >= count($slashes)) {
-            return $node[3] !== null ? [self::FOUND, $node[3], []] : null;
+        if (!isset($this->dynamicRoutes[$method])) {
+            return null;
         }
 
-        $cursor = $slashes[$segmentIdx - 1] + 1;
-        $end = $slashes[$segmentIdx];
-        $segmentLen = $end - $cursor;
-
-        if ($cursor < $len && $segmentLen > 0) {
-            $combinedKey = $uri[$cursor] . '_' . $segmentLen;
-            if (isset($node[0][$combinedKey])) {
-                foreach ($node[0][$combinedKey] as $bucket) {
-                    if (substr_compare($uri, $bucket[0], $cursor, $segmentLen) === 0) {
-                        $res = $this->search($bucket[1], $uri, $segmentIdx + 1, $slashes, $len);
-                        if ($res !== null) return $res;
-                    }
-                }
-            }
+        $firstChar = $uri[1] ?? '/';
+        $chunks = $this->dynamicRoutes[$method][$firstChar] ?? [];
+        if (isset($this->dynamicRoutes[$method]['*'])) {
+            $chunks = array_merge($chunks, $this->dynamicRoutes[$method]['*']);
         }
 
-        if ($node[1] !== null) {
-            if (preg_match($node[1], $uri, $matches, 0, $slashes[$segmentIdx - 1])) {
-                $routeIndex = (int)$matches['MARK'];
+        foreach ($chunks as $chunk) {
+            if (preg_match($chunk['regex'], $uri, $matches)) {
+                $mark = (int) $matches['MARK'];
+                $handler = $chunk['handlers'][$mark];
+
                 $vars = [];
-                foreach ($matches as $k => $v) {
-                    if (is_string($k) && $k !== 'MARK' && $v !== '') {
-                        $vars[$k] = $v;
+                foreach ($matches as $key => $val) {
+                    if (is_string($key) && $key !== 'MARK' && $val !== '') {
+                        $vars[$key] = $val;
                     }
                 }
-                return [self::FOUND, $node[2][$routeIndex]['handler'], $vars];
+
+                return [self::FOUND, $handler, $vars];
             }
         }
 
         return null;
+    }
+
+    private function collectAllowedMethods(string $currentMethod, string $uri): array
+    {
+        $allowed = [];
+
+        foreach ($this->staticRoutes as $m => $routes) {
+            if ($m !== $currentMethod && isset($routes[$uri])) {
+                $allowed[$m] = true;
+            }
+        }
+
+        foreach ($this->dynamicRoutes as $m => $charMap) {
+            if ($m === $currentMethod) {
+                continue;
+            }
+            $firstChar = $uri[1] ?? '/';
+            $chunks = $charMap[$firstChar] ?? [];
+            if (isset($charMap['*'])) {
+                $chunks = array_merge($chunks, $charMap['*']);
+            }
+
+            foreach ($chunks as $chunk) {
+                if (preg_match($chunk['regex'], $uri)) {
+                    $allowed[$m] = true;
+                    break;
+                }
+            }
+        }
+
+        if (isset($allowed['GET']) && !isset($allowed['HEAD'])) {
+            $allowed['HEAD'] = true;
+        }
+
+        return array_keys($allowed);
     }
 }
