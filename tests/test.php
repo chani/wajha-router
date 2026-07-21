@@ -229,7 +229,7 @@ $benchFiles = glob(__DIR__ . '/benchmarks/*Bench.php') ?: [];
 foreach ($benchFiles as $file) {
     if (file_exists($file)) {
         $benchConfig = require $file;
-        if (is_array($benchConfig)) {
+        if (is_array($benchConfig) && isset($benchConfig['setup'], $benchConfig['dispatch'])) {
             $registeredBenchmarks[] = $benchConfig;
         }
     }
