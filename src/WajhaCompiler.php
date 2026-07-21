@@ -8,12 +8,17 @@ use BackedEnum;
 
 class WajhaCompiler
 {
+    /** @var array<string, array<string, mixed>> */
     private array $staticRoutes = [];
+
+    /** @var array<string, array<string, list<array{pattern: string, handler: mixed}>>> */
     private array $dynamicRoutes = [];
+
     private string $currentGroupPrefix = '';
 
     /**
      * Common type shorthand expansions
+     * @var array<string, string>
      */
     private const array SHORTHANDS = [
         ':int}'   => ':\d+}',
@@ -36,22 +41,27 @@ class WajhaCompiler
     {
         $this->addRoute('GET', $path, $handler);
     }
+
     public function post(string $path, mixed $handler): void
     {
         $this->addRoute('POST', $path, $handler);
     }
+
     public function put(string $path, mixed $handler): void
     {
         $this->addRoute('PUT', $path, $handler);
     }
+
     public function delete(string $path, mixed $handler): void
     {
         $this->addRoute('DELETE', $path, $handler);
     }
+
     public function patch(string $path, mixed $handler): void
     {
         $this->addRoute('PATCH', $path, $handler);
     }
+
     public function head(string $path, mixed $handler): void
     {
         $this->addRoute('HEAD', $path, $handler);
@@ -60,7 +70,6 @@ class WajhaCompiler
     public function addRoute(string $method, string $path, mixed $handler): void
     {
         $method = strtoupper($method);
-
         if ($this->currentGroupPrefix !== '') {
             $path = $this->currentGroupPrefix . '/' . ltrim($path, '/');
         }
@@ -82,9 +91,10 @@ class WajhaCompiler
     private function resolvePathShorthandsAndEnums(string $path): string
     {
         $path = strtr($path, self::SHORTHANDS);
-
-        return (string) preg_replace_callback('~\{([a-zA-Z0-9_]+):([\\\\a-zA-Z0-9_]+)\}~', function (array $matches): string {
+        /** @var string */
+        return preg_replace_callback('~\{([a-zA-Z0-9_]+):([\\\\a-zA-Z0-9_]+)\}~', static function (array $matches): string {
             $paramName = $matches[1];
+            /** @var class-string $class */
             $class = $matches[2];
 
             if (enum_exists($class) && is_subclass_of($class, BackedEnum::class)) {
@@ -96,17 +106,21 @@ class WajhaCompiler
             }
 
             return $matches[0];
-        }, $path);
+        }, $path) ?? $path;
     }
 
+    /**
+     * @return array<int, string>
+     */
     private function expandOptionalPaths(string $route): array
     {
         if (!str_contains($route, '[')) {
             return [$route];
         }
 
+        /** @var array<int, string> $routes */
         $routes = [];
-        $expand = function (string $str) use (&$expand, &$routes): void {
+        $expand = static function (string $str) use (&$expand, &$routes): void {
             $len = strlen($str);
             $inParam = 0;
             $optStart = -1;
@@ -155,7 +169,7 @@ class WajhaCompiler
     {
         $pattern = $this->parseRoutePattern($path);
 
-	$firstChar = isset($path[1]) ? $path[1] : '/';
+        $firstChar = isset($path[1]) ? $path[1] : '/';
         if ($firstChar === '{') {
             $firstChar = '*';
         }
@@ -212,8 +226,15 @@ class WajhaCompiler
         return $regex;
     }
 
+    /**
+     * @return array{
+     * static: array<string, array<string, mixed>>,
+     * dynamic: array<string, array<string, list<array{regex: string, handlers: array<int, mixed>}>>>
+     * }
+     */
     public function compile(): array
     {
+        /** @var array<string, array<string, list<array{regex: string, handlers: array<int, mixed>}>>> $compiledDynamic */
         $compiledDynamic = [];
 
         foreach ($this->dynamicRoutes as $method => $charGroups) {
