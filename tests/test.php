@@ -28,6 +28,9 @@ $config = [
 // 2. CORE HELPERS
 // ============================================================================
 
+/**
+ * @return list<string>
+ */
 function expandOptionalPaths(string $route): array
 {
     if (!str_contains($route, '[')) {
@@ -80,6 +83,9 @@ function expandOptionalPaths(string $route): array
     return array_values(array_unique($routes));
 }
 
+/**
+ * @return list<array{method: string, path: string, handler: mixed}>
+ */
 function generateRandomRoutes(int $count): array
 {
     $methods = ['GET', 'POST', 'PUT', 'DELETE'];
@@ -136,6 +142,10 @@ function generateRandomRoutes(int $count): array
     return $routes;
 }
 
+/**
+ * @param list<array{method: string, path: string, handler: mixed}> $routes
+ * @return list<array{method: string, uri: string}>
+ */
 function generateTestRequests(array $routes, int $count): array
 {
     $requests = [];

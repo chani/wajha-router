@@ -246,7 +246,7 @@ class WajhaCompiler
     /**
      * @return array{
      * static: array<string, array<string, mixed>>,
-     * dynamic: array<string, array<string, list<array{regex: string, routeMap: array<string, array{handler: mixed, vars: list<string>}>}>>>
+     * dynamic: array<string, array<string, list<array{regex: string, routeMap: array<int|string, array{handler: mixed, vars: list<string>}>}>>>
      * }
      */
     public function compile(): array

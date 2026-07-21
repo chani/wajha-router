@@ -16,6 +16,7 @@ if (!class_exists(\FastRoute\RouteCollector::class)) {
 return [
     'name' => 'nikic/FastRoute',
     'setup' => function (array $routes) {
+	/** @var list<array{method: string, path: string, handler: mixed}> $routes */
         return FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) use ($routes) {
             foreach ($routes as $route) {
                 $r->addRoute($route['method'], $route['path'], $route['handler']);

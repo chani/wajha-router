@@ -19,6 +19,7 @@ if (!class_exists(RouteCollector::class)) {
 return [
     'name' => 'Phroute',
     'setup' => function (array $routes) {
+	/** @var list<array{method: string, path: string, handler: mixed}> $routes */
         $collector = new RouteCollector();
         foreach ($routes as $route) {
             foreach (expandOptionalPaths($route['path']) as $p) {

@@ -72,6 +72,7 @@ function parseAndCleanSymfonyPath(string $path, array &$reqs): string
 return [
     'name' => 'Symfony Routing',
     'setup' => function (array $routes) {
+	/** @var list<array{method: string, path: string, handler: mixed}> $routes */
         $symfonyRoutes = new RouteCollection();
         foreach ($routes as $i => $route) {
             foreach (expandOptionalPaths($route['path']) as $subIdx => $expandedPath) {

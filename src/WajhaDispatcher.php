@@ -21,13 +21,13 @@ class WajhaDispatcher
     /** @var array<string, array<string, mixed>> */
     private readonly array $staticRoutes;
 
-    /** @var array<string, array<string, list<array{regex: string, routeMap: array<string, array{handler: mixed, vars: list<string>}>}>>> */
+    /** @var array<string, array<string, list<array{regex: string, routeMap: array<int|string, array{handler: mixed, vars: list<string>}>}>>> */
     private readonly array $dynamicRoutes;
 
     /**
      * @param array{
      * static?: array<string, array<string, mixed>>,
-     * dynamic?: array<string, array<string, list<array{regex: string, routeMap: array<string, array{handler: mixed, vars: list<string>}>}>>>
+     * dynamic?: array<string, array<string, list<array{regex: string, routeMap: array<int|string, array{handler: mixed, vars: list<string>}>}>>>
      * } $compiledData
      */
     public function __construct(array $compiledData)

@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 use Safi\Wajha\WajhaCompiler;
 use Safi\Wajha\WajhaDispatcher;
 
+/** @var array{routes: list<array{method: string, path: string, handler: mixed}>, requests: array<string, array{method: string, uri: string}>} $benchData */
 $benchData = require __DIR__ . '/benchmarks/RealWorldBench.php';
 $routes = $benchData['routes'];
 $requests = $benchData['requests'];

@@ -28,6 +28,10 @@ final class WajhaDispatcherTest extends TestCase
     // 1. FOUND DISPATCH CASES (FastRoute Suite + Wajha Features)
     // =========================================================================
 
+
+    /**
+     * @param array<string, string> $expectedVars
+     */
     #[DataProvider('provideFoundDispatchCases')]
     public function testFoundDispatches(
         string $method,
@@ -44,6 +48,9 @@ final class WajhaDispatcherTest extends TestCase
         $this->assertSame($expectedVars, $result[2], "Extracted variables mismatch for [$method] $uri");
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: string, 2: mixed, 3?: array<string, string>}>
+     */
     public static function provideFoundDispatchCases(): iterable
     {
         // --- Static Routes ---
@@ -171,6 +178,9 @@ final class WajhaDispatcherTest extends TestCase
         $this->assertSame(WajhaDispatcher::NOT_FOUND, $result[0]);
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: string}>
+     */
     public static function provideNotFoundDispatchCases(): iterable
     {
         $callback = function (WajhaCompiler $r) {
@@ -208,6 +218,9 @@ final class WajhaDispatcherTest extends TestCase
         $this->assertSame($expectedAllowedMethods, $allowed, "Allowed methods mismatch for [$method] $uri");
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: string, 2: list<string>}>
+     */
     public static function provideMethodNotAllowedDispatchCases(): iterable
     {
         yield 'static route wrong method' => [
