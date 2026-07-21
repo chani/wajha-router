@@ -1,0 +1,29 @@
+{
+    "name": "safi/wajha",
+    "description": "A zero-allocation hybrid HTTP router for PHP 8.5+ combining O(1) static maps and first-character radix jump trees.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jean Bruenn"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Safi\\Wajha\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=8.5"
+    },
+    "require-dev": {
+        "altorouter/altorouter": "^2.0",
+        "nikic/fast-route": "^1.3",
+        "phroute/phroute": "^2.2",
+        "symfony/routing": "^8.1"
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true
+    }
+}
