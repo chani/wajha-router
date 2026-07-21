@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Safi/Wajha Router
  * @author Jean Bruenn
@@ -16,7 +17,7 @@ if (!class_exists(\AltoRouter::class)) {
 return [
     'name' => 'AltoRouter',
     'setup' => function (array $routes) {
-	/** @var list<array{method: string, path: string, handler: mixed}> $routes */
+        /** @var list<array{method: string, path: string, handler: mixed}> $routes */
         $router = new AltoRouter();
         foreach ($routes as $route) {
             foreach (expandOptionalPaths($route['path']) as $p) {

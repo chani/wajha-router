@@ -1,4 +1,11 @@
 <?php
+/**
+ * Safi/Wajha Router
+ * @author Jean Bruenn
+ * @copyright 2026 All Rights Reserved
+ * @see https://github.com/chani/wajha-router
+ * @see https://packagist.org/packages/chani/wajha
+ */
 
 declare(strict_types=1);
 
@@ -64,7 +71,7 @@ foreach ($requests as $scenarioName => $req) {
         $scenarioName,
         number_format($wajhaRps, 0, ',', '.'),
         number_format($fastRouteRps, 0, ',', '.'),
-        $ratio
+        $ratio,
     );
 }
 

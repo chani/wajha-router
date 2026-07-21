@@ -1,4 +1,11 @@
 <?php
+/**
+ * Safi/Wajha Router
+ * @author Jean Bruenn
+ * @copyright 2026 All Rights Reserved
+ * @see https://github.com/chani/wajha-router
+ * @see https://packagist.org/packages/chani/wajha
+ */
 
 declare(strict_types=1);
 
@@ -53,12 +60,12 @@ return [
         ['method' => 'DELETE', 'path' => '/admin/category/{category_id:\d+}', 'handler' => 'admin.category.destroy'],
     ],
     'requests' => [
-        'static_first'    => ['method' => 'GET', 'uri' => '/'],
-        'static_last'     => ['method' => 'GET', 'uri' => '/admin/category'],
-        'dynamic_first'   => ['method' => 'GET', 'uri' => '/page/hello-world'],
-        'dynamic_last'    => ['method' => 'GET', 'uri' => '/admin/category/123'],
-        'longest_route'   => ['method' => 'GET', 'uri' => '/shop/category/123/product/search/status:sale'],
-        'invalid_method'  => ['method' => 'PUT', 'uri' => '/about-us'],
-        'unknown_route'   => ['method' => 'GET', 'uri' => '/shop/product/awesome/nonexistent'],
+        'static_first' => ['method' => 'GET', 'uri' => '/'],
+        'static_last' => ['method' => 'GET', 'uri' => '/admin/category'],
+        'dynamic_first' => ['method' => 'GET', 'uri' => '/page/hello-world'],
+        'dynamic_last' => ['method' => 'GET', 'uri' => '/admin/category/123'],
+        'longest_route' => ['method' => 'GET', 'uri' => '/shop/category/123/product/search/status:sale'],
+        'invalid_method' => ['method' => 'PUT', 'uri' => '/about-us'],
+        'unknown_route' => ['method' => 'GET', 'uri' => '/shop/product/awesome/nonexistent'],
     ],
 ];

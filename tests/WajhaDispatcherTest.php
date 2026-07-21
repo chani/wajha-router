@@ -1,4 +1,11 @@
 <?php
+/**
+ * Safi/Wajha Router
+ * @author Jean Bruenn
+ * @copyright 2026 All Rights Reserved
+ * @see https://github.com/chani/wajha-router
+ * @see https://packagist.org/packages/chani/wajha
+ */
 
 declare(strict_types=1);
 
@@ -38,7 +45,7 @@ final class WajhaDispatcherTest extends TestCase
         string $uri,
         callable $callback,
         mixed $expectedHandler,
-        array $expectedVars = []
+        array $expectedVars = [],
     ): void {
         $dispatcher = $this->createDispatcher($callback);
         $result = $dispatcher->dispatch($method, $uri);
@@ -56,8 +63,10 @@ final class WajhaDispatcherTest extends TestCase
         // --- Static Routes ---
         yield 'single static route' => [
             'GET', '/resource/123/456',
-            function (WajhaCompiler $r) { $r->get('/resource/123/456', 'handler0'); },
-            'handler0'
+            function (WajhaCompiler $r) {
+                $r->get('/resource/123/456', 'handler0');
+            },
+            'handler0',
         ];
 
         yield 'multiple static routes' => [
@@ -67,7 +76,7 @@ final class WajhaDispatcherTest extends TestCase
                 $r->get('/handler1', 'handler1');
                 $r->get('/handler2', 'handler2');
             },
-            'handler2'
+            'handler2',
         ];
 
         // --- Precedence & Matching Order ---
@@ -78,13 +87,13 @@ final class WajhaDispatcherTest extends TestCase
         };
 
         yield 'parameter matching precedence: full match' => [
-            'GET', '/user/jean/12345', $precedenceCallback, 'handler0', ['name' => 'jean', 'id' => '12345']
+            'GET', '/user/jean/12345', $precedenceCallback, 'handler0', ['name' => 'jean', 'id' => '12345'],
         ];
         yield 'parameter matching precedence: int match' => [
-            'GET', '/user/12345', $precedenceCallback, 'handler1', ['id' => '12345']
+            'GET', '/user/12345', $precedenceCallback, 'handler1', ['id' => '12345'],
         ];
         yield 'parameter matching precedence: string match' => [
-            'GET', '/user/jean', $precedenceCallback, 'handler2', ['name' => 'jean']
+            'GET', '/user/jean', $precedenceCallback, 'handler2', ['name' => 'jean'],
         ];
 
         // --- File Extensions & Suffixes ---
@@ -94,7 +103,7 @@ final class WajhaDispatcherTest extends TestCase
                 $r->get('/user/{id:\d+}', 'handler0');
                 $r->get('/user/{id:\d+}.{extension}', 'handler2');
             },
-            'handler2', ['id' => '12345', 'extension' => 'svg']
+            'handler2', ['id' => '12345', 'extension' => 'svg'],
         ];
 
         yield 'constant suffix' => [
@@ -103,7 +112,7 @@ final class WajhaDispatcherTest extends TestCase
                 $r->get('/user/{name}', 'handler0');
                 $r->get('/user/{name}/edit', 'handler1');
             },
-            'handler1', ['name' => 'jean']
+            'handler1', ['name' => 'jean'],
         ];
 
         // --- HEAD Request Fallbacks (RFC 9110) ---
@@ -114,54 +123,68 @@ final class WajhaDispatcherTest extends TestCase
         };
 
         yield 'fallback to GET on HEAD route miss (dynamic)' => [
-            'HEAD', '/user/jean', $headCallback, 'handler0', ['name' => 'jean']
+            'HEAD', '/user/jean', $headCallback, 'handler0', ['name' => 'jean'],
         ];
         yield 'fallback to GET on HEAD route miss (static)' => [
-            'HEAD', '/static0', $headCallback, 'handler1'
+            'HEAD', '/static0', $headCallback, 'handler1',
         ];
         yield 'explicit HEAD route is preferred' => [
-            'HEAD', '/static1', $headCallback, 'handler2'
+            'HEAD', '/static1', $headCallback, 'handler2',
         ];
 
         // --- Optional Segments ---
         yield 'optional segments expansion (base route)' => [
             'GET', '/user',
-            function (WajhaCompiler $r) { $r->get('/user[/{id:int}[/{name}]]', 'handler0'); },
-            'handler0'
+            function (WajhaCompiler $r) {
+                $r->get('/user[/{id:int}[/{name}]]', 'handler0');
+            },
+            'handler0',
         ];
         yield 'optional segments expansion (first level)' => [
             'GET', '/user/42',
-            function (WajhaCompiler $r) { $r->get('/user[/{id:int}[/{name}]]', 'handler0'); },
-            'handler0', ['id' => '42']
+            function (WajhaCompiler $r) {
+                $r->get('/user[/{id:int}[/{name}]]', 'handler0');
+            },
+            'handler0', ['id' => '42'],
         ];
         yield 'optional segments expansion (second level)' => [
             'GET', '/user/42/jean',
-            function (WajhaCompiler $r) { $r->get('/user[/{id:int}[/{name}]]', 'handler0'); },
-            'handler0', ['id' => '42', 'name' => 'jean']
+            function (WajhaCompiler $r) {
+                $r->get('/user[/{id:int}[/{name}]]', 'handler0');
+            },
+            'handler0', ['id' => '42', 'name' => 'jean'],
         ];
 
         // --- Wajha Specifics: Shorthands ---
         yield 'wajha shorthand :int' => [
             'GET', '/item/99',
-            function (WajhaCompiler $r) { $r->get('/item/{id:int}', 'handlerInt'); },
-            'handlerInt', ['id' => '99']
+            function (WajhaCompiler $r) {
+                $r->get('/item/{id:int}', 'handlerInt');
+            },
+            'handlerInt', ['id' => '99'],
         ];
         yield 'wajha shorthand :uuid' => [
             'GET', '/item/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-            function (WajhaCompiler $r) { $r->get('/item/{id:uuid}', 'handlerUuid'); },
-            'handlerUuid', ['id' => 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11']
+            function (WajhaCompiler $r) {
+                $r->get('/item/{id:uuid}', 'handlerUuid');
+            },
+            'handlerUuid', ['id' => 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'],
         ];
         yield 'wajha shorthand :slug' => [
             'GET', '/post/my-awesome-post',
-            function (WajhaCompiler $r) { $r->get('/post/{title:slug}', 'handlerSlug'); },
-            'handlerSlug', ['title' => 'my-awesome-post']
+            function (WajhaCompiler $r) {
+                $r->get('/post/{title:slug}', 'handlerSlug');
+            },
+            'handlerSlug', ['title' => 'my-awesome-post'],
         ];
 
         // --- Wajha Specifics: Backed Enums ---
         yield 'wajha enum constraint' => [
             'GET', '/status/active',
-            function (WajhaCompiler $r) { $r->get('/status/{st:' . TestStatus::class . '}', 'handlerEnum'); },
-            'handlerEnum', ['st' => 'active']
+            function (WajhaCompiler $r) {
+                $r->get('/status/{st:' . TestStatus::class . '}', 'handlerEnum');
+            },
+            'handlerEnum', ['st' => 'active'],
         ];
     }
 
@@ -204,13 +227,13 @@ final class WajhaDispatcherTest extends TestCase
         string $method,
         string $uri,
         callable $callback,
-        array $expectedAllowedMethods
+        array $expectedAllowedMethods,
     ): void {
         $dispatcher = $this->createDispatcher($callback);
         $result = $dispatcher->dispatch($method, $uri);
 
         $this->assertSame(WajhaDispatcher::METHOD_NOT_ALLOWED, $result[0]);
-        
+
         $allowed = $result[1];
         sort($allowed);
         sort($expectedAllowedMethods);
@@ -225,8 +248,10 @@ final class WajhaDispatcherTest extends TestCase
     {
         yield 'static route wrong method' => [
             'POST', '/resource',
-            function (WajhaCompiler $r) { $r->get('/resource', 'handler0'); },
-            ['GET', 'HEAD'] // HEAD wird automatisch zu GET erlaubt
+            function (WajhaCompiler $r) {
+                $r->get('/resource', 'handler0');
+            },
+            ['GET', 'HEAD'], // HEAD wird automatisch zu GET erlaubt
         ];
 
         yield 'static route multiple methods allowed' => [
@@ -236,7 +261,7 @@ final class WajhaDispatcherTest extends TestCase
                 $r->post('/resource', 'handler1');
                 $r->put('/resource', 'handler2');
             },
-            ['GET', 'HEAD', 'POST', 'PUT']
+            ['GET', 'HEAD', 'POST', 'PUT'],
         ];
 
         yield 'dynamic route wrong method' => [
@@ -245,7 +270,7 @@ final class WajhaDispatcherTest extends TestCase
                 $r->get('/user/{name}/{id:\d+}', 'handler0');
                 $r->post('/user/{name}/{id:\d+}', 'handler1');
             },
-            ['GET', 'HEAD', 'POST']
+            ['GET', 'HEAD', 'POST'],
         ];
     }
 }
