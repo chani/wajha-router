@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Safi/Wajha Router
  * @author Jean Bruenn
@@ -20,13 +21,13 @@ class WajhaDispatcher
     /** @var array<string, array<string, mixed>> */
     private readonly array $staticRoutes;
 
-    /** @var array<string, array<string, list<array{regex: string, handlers: array<int, mixed>}>>> */
+    /** @var array<string, array<string, list<array{regex: string, routeMap: array<string, array{handler: mixed, vars: list<string>}>}>>> */
     private readonly array $dynamicRoutes;
 
     /**
      * @param array{
      * static?: array<string, array<string, mixed>>,
-     * dynamic?: array<string, array<string, list<array{regex: string, handlers: array<int, mixed>}>>>
+     * dynamic?: array<string, array<string, list<array{regex: string, routeMap: array<string, array{handler: mixed, vars: list<string>}>}>>>
      * } $compiledData
      */
     public function __construct(array $compiledData)
@@ -36,21 +37,45 @@ class WajhaDispatcher
     }
 
     /**
-     * @return array{0: int, 1: mixed, 2?: array<string, string>|array<int, string>}
+     * @param string $method HTTP method in UPPERCASE (e.g., 'GET', 'POST')
+     * @return array{0: int, 1: mixed, 2?: array<string, string>}
      */
     public function dispatch(string $method, string $uri): array
     {
-        $method = strtoupper($method);
-
         // 1. O(1) fast-path for static routes
         if (isset($this->staticRoutes[$method][$uri])) {
             return [self::FOUND, $this->staticRoutes[$method][$uri], []];
         }
 
-        // 2. Fast combined PCRE2 match for dynamic routes
-        $dynamicMatch = $this->matchDynamic($method, $uri);
-        if ($dynamicMatch !== null) {
-            return $dynamicMatch;
+        // 2. Fast combined PCRE2 match for dynamic routes (Inlined)
+        if (isset($this->dynamicRoutes[$method])) {
+            $firstChar = $uri[1] ?? '/';
+            $chunks = $this->dynamicRoutes[$method][$firstChar] ?? $this->dynamicRoutes[$method]['*'] ?? null;
+
+            if ($chunks !== null) {
+                foreach ($chunks as $chunk) {
+                    if (preg_match($chunk['regex'], $uri, $matches) === 1) {
+                        $routeData = $chunk['routeMap'][$matches['MARK']];
+                        $varCount = count($routeData['vars']);
+
+                        if ($varCount === 1) {
+                            $vars = [$routeData['vars'][0] => $matches[$routeData['vars'][0]]];
+                        } elseif ($varCount === 2) {
+                            $vars = [
+                                $routeData['vars'][0] => $matches[$routeData['vars'][0]],
+                                $routeData['vars'][1] => $matches[$routeData['vars'][1]],
+                            ];
+                        } else {
+                            $vars = [];
+                            foreach ($routeData['vars'] as $varName) {
+                                $vars[$varName] = $matches[$varName];
+                            }
+                        }
+
+                        return [self::FOUND, $routeData['handler'], $vars];
+                    }
+                }
+            }
         }
 
         // 3. Automatic HEAD -> GET fallback (RFC 9110 §9.3.2)
@@ -58,9 +83,30 @@ class WajhaDispatcher
             if (isset($this->staticRoutes['GET'][$uri])) {
                 return [self::FOUND, $this->staticRoutes['GET'][$uri], []];
             }
-            $headDynamicMatch = $this->matchDynamic('GET', $uri);
-            if ($headDynamicMatch !== null) {
-                return $headDynamicMatch;
+
+            if (isset($this->dynamicRoutes['GET'])) {
+                $firstChar = $uri[1] ?? '/';
+                $chunks = $this->dynamicRoutes['GET'][$firstChar] ?? $this->dynamicRoutes['GET']['*'] ?? null;
+
+                if ($chunks !== null) {
+                    foreach ($chunks as $chunk) {
+                        if (preg_match($chunk['regex'], $uri, $matches) === 1) {
+                            $routeData = $chunk['routeMap'][$matches['MARK']];
+                            $varCount = count($routeData['vars']);
+
+                            if ($varCount === 1) {
+                                $vars = [$routeData['vars'][0] => $matches[$routeData['vars'][0]]];
+                            } else {
+                                $vars = [];
+                                foreach ($routeData['vars'] as $varName) {
+                                    $vars[$varName] = $matches[$varName];
+                                }
+                            }
+
+                            return [self::FOUND, $routeData['handler'], $vars];
+                        }
+                    }
+                }
             }
         }
 
@@ -74,41 +120,6 @@ class WajhaDispatcher
     }
 
     /**
-     * @return array{0: int, 1: mixed, 2: array<string, string>}|null
-     */
-    private function matchDynamic(string $method, string $uri): ?array
-    {
-        if (!isset($this->dynamicRoutes[$method])) {
-            return null;
-        }
-
-        $firstChar = isset($uri[1]) ? $uri[1] : '/';
-        $chunks = $this->dynamicRoutes[$method][$firstChar] ?? [];
-
-        if (isset($this->dynamicRoutes[$method]['*'])) {
-            $chunks = array_merge($chunks, $this->dynamicRoutes[$method]['*']);
-        }
-
-        foreach ($chunks as $chunk) {
-            if (preg_match($chunk['regex'], $uri, $matches) === 1) {
-                $markIdx = (int) $matches['MARK'];
-                $handler = $chunk['handlers'][$markIdx];
-
-                $vars = [];
-                foreach ($matches as $key => $val) {
-                    if (is_string($key) && $key !== 'MARK' && $val !== '') {
-                        $vars[$key] = $val;
-                    }
-                }
-
-                return [self::FOUND, $handler, $vars];
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * @return list<string>
      */
     private function collectAllowedMethods(string $currentMethod, string $uri): array
@@ -116,34 +127,35 @@ class WajhaDispatcher
         $allowed = [];
 
         foreach ($this->staticRoutes as $m => $routes) {
-            if ($m !== $currentMethod && isset($routes[$uri])) {
-                $allowed[$m] = true;
+            if ($m !== $currentMethod && isset($routes[$uri]) && !in_array($m, $allowed, true)) {
+                $allowed[] = $m;
             }
         }
 
+        $firstChar = $uri[1] ?? '/';
+
         foreach ($this->dynamicRoutes as $m => $charMap) {
-            if ($m === $currentMethod) {
+            if ($m === $currentMethod || in_array($m, $allowed, true)) {
                 continue;
             }
 
-            $firstChar = isset($uri[1]) ? $uri[1] : '/';
-            $chunks = $charMap[$firstChar] ?? [];
-            if (isset($charMap['*'])) {
-                $chunks = array_merge($chunks, $charMap['*']);
+            $chunks = $charMap[$firstChar] ?? $charMap['*'] ?? null;
+            if ($chunks === null) {
+                continue;
             }
 
             foreach ($chunks as $chunk) {
                 if (preg_match($chunk['regex'], $uri) === 1) {
-                    $allowed[$m] = true;
+                    $allowed[] = $m;
                     break;
                 }
             }
         }
 
-        if (isset($allowed['GET']) && !isset($allowed['HEAD'])) {
-            $allowed['HEAD'] = true;
+        if (in_array('GET', $allowed, true) && !in_array('HEAD', $allowed, true)) {
+            $allowed[] = 'HEAD';
         }
 
-        return array_keys($allowed);
+        return $allowed;
     }
 }

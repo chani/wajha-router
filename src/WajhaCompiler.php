@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Safi/Wajha Router
  * @author Jean Bruenn
@@ -18,7 +19,7 @@ class WajhaCompiler
     /** @var array<string, array<string, mixed>> */
     private array $staticRoutes = [];
 
-    /** @var array<string, array<string, list<array{pattern: string, handler: mixed}>>> */
+    /** @var array<string, array<string, list<array{pattern: string, vars: list<string>, handler: mixed}>>> */
     private array $dynamicRoutes = [];
 
     private string $currentGroupPrefix = '';
@@ -174,23 +175,28 @@ class WajhaCompiler
 
     private function registerDynamicRoute(string $method, string $path, mixed $handler): void
     {
-        $pattern = $this->parseRoutePattern($path);
+        $parsed = $this->parseRoutePattern($path);
 
-        $firstChar = isset($path[1]) ? $path[1] : '/';
+        $firstChar = $path[1] ?? '/';
         if ($firstChar === '{') {
             $firstChar = '*';
         }
 
         $this->dynamicRoutes[$method][$firstChar][] = [
-            'pattern' => $pattern,
+            'pattern' => $parsed['pattern'],
+            'vars' => $parsed['vars'],
             'handler' => $handler,
         ];
     }
 
-    private function parseRoutePattern(string $path): string
+    /**
+     * @return array{pattern: string, vars: list<string>}
+     */
+    private function parseRoutePattern(string $path): array
     {
         $length = strlen($path);
         $regex = '';
+        $vars = [];
         $i = 0;
 
         while ($i < $length) {
@@ -222,6 +228,7 @@ class WajhaCompiler
                     $varRegex = '[^/]+';
                 }
 
+                $vars[] = $varName;
                 $regex .= '(?<' . $varName . '>' . $varRegex . ')';
             } else {
                 $char = $path[$i];
@@ -230,37 +237,60 @@ class WajhaCompiler
             }
         }
 
-        return $regex;
+        return [
+            'pattern' => $regex,
+            'vars' => $vars,
+        ];
     }
 
     /**
      * @return array{
      * static: array<string, array<string, mixed>>,
-     * dynamic: array<string, array<string, list<array{regex: string, handlers: array<int, mixed>}>>>
+     * dynamic: array<string, array<string, list<array{regex: string, routeMap: array<string, array{handler: mixed, vars: list<string>}>}>>>
      * }
      */
     public function compile(): array
     {
-        /** @var array<string, array<string, list<array{regex: string, handlers: array<int, mixed>}>>> $compiledDynamic */
+        /** @var array<string, array<string, list<array{regex: string, routeMap: array<string, array{handler: mixed, vars: list<string>}>}>>> $compiledDynamic */
         $compiledDynamic = [];
 
         foreach ($this->dynamicRoutes as $method => $charGroups) {
+            $compiledGroups = [];
+            $totalMethodRoutes = array_sum(array_map('count', $charGroups));
+
+            $chunkSize = ($totalMethodRoutes <= 50) ? 50 : 30;
+
             foreach ($charGroups as $firstChar => $routes) {
-                $chunks = array_chunk($routes, 30);
+                $chunks = array_chunk($routes, $chunkSize);
                 foreach ($chunks as $chunk) {
                     $patterns = [];
-                    $handlers = [];
+                    $routeMap = [];
 
                     foreach ($chunk as $idx => $route) {
-                        $patterns[] = $route['pattern'] . '(*MARK:' . $idx . ')';
-                        $handlers[$idx] = $route['handler'];
+                        $markKey = (string) $idx;
+                        $patterns[] = $route['pattern'] . '(*MARK:' . $markKey . ')';
+                        $routeMap[$markKey] = [
+                            'handler' => $route['handler'],
+                            'vars' => $route['vars'],
+                        ];
                     }
 
-                    $compiledDynamic[$method][$firstChar][] = [
-                        'regex' => '~(?J)^(?:' . implode('|', $patterns) . ')$~u',
-                        'handlers' => $handlers,
+                    $compiledGroups[$firstChar][] = [
+                        'regex' => '~(?J)^(?:' . implode('|', $patterns) . ')$~',
+                        'routeMap' => $routeMap,
                     ];
                 }
+            }
+
+            $wildcardChunks = $compiledGroups['*'] ?? [];
+
+            foreach ($compiledGroups as $firstChar => $chunks) {
+                if ($firstChar === '*') {
+                    $compiledDynamic[$method]['*'] = $chunks;
+                    continue;
+                }
+
+                $compiledDynamic[$method][$firstChar] = array_merge($chunks, $wildcardChunks);
             }
         }
 
