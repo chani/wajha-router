@@ -25,6 +25,7 @@ return [
     'dispatch' => function (Dispatcher $dispatcher, array $req) {
         try {
             $dispatcher->dispatch($req['method'], $req['uri']);
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
     }
 ];

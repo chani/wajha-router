@@ -42,9 +42,14 @@ function parseAndCleanSymfonyPath(string $path, array &$reqs): string
             $regexStart = $i;
             $depth = 1;
             while ($i < $length && $depth > 0) {
-                if ($path[$i] === '{') $depth++;
-                elseif ($path[$i] === '}') $depth--;
-                if ($depth > 0) $i++;
+                if ($path[$i] === '{') {
+                    $depth++;
+                } elseif ($path[$i] === '}') {
+                    $depth--;
+                }
+                if ($depth > 0) {
+                    $i++;
+                }
             }
             $regex = substr($path, $regexStart, $i - $regexStart);
             $i++;
@@ -67,7 +72,7 @@ return [
             foreach (expandOptionalPaths($route['path']) as $subIdx => $expandedPath) {
                 $reqs = [];
                 $cleanPath = parseAndCleanSymfonyPath($expandedPath, $reqs);
-                
+
                 $sfRoute = new Route(
                     path: $cleanPath,
                     defaults: ['_controller' => $route['handler']],
@@ -90,6 +95,7 @@ return [
         $runner['context']->setMethod($req['method']);
         try {
             $runner['matcher']->match($req['uri']);
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
     }
 ];

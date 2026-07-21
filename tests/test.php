@@ -28,7 +28,7 @@ function expandOptionalPaths(string $route): array
     }
 
     $routes = [];
-    $expand = function(string $str) use (&$expand, &$routes) {
+    $expand = function (string $str) use (&$expand, &$routes) {
         $len = strlen($str);
         $inParam = 0;
         $optStart = -1;
@@ -37,15 +37,22 @@ function expandOptionalPaths(string $route): array
 
         for ($i = 0; $i < $len; $i++) {
             $char = $str[$i];
-            if ($char === '{') $inParam++;
-            elseif ($char === '}' && $inParam > 0) $inParam--;
-            elseif ($inParam === 0) {
+            if ($char === '{') {
+                $inParam++;
+            } elseif ($char === '}' && $inParam > 0) {
+                $inParam--;
+            } elseif ($inParam === 0) {
                 if ($char === '[') {
-                    if ($optDepth === 0) $optStart = $i;
+                    if ($optDepth === 0) {
+                        $optStart = $i;
+                    }
                     $optDepth++;
                 } elseif ($char === ']' && $optDepth > 0) {
                     $optDepth--;
-                    if ($optDepth === 0) { $optEnd = $i; break; }
+                    if ($optDepth === 0) {
+                        $optEnd = $i;
+                        break;
+                    }
                 }
             }
         }
@@ -71,14 +78,14 @@ function generateRandomRoutes(int $count): array
     $methods = ['GET', 'POST', 'PUT', 'DELETE'];
     $staticWords = ['api', 'v1', 'user', 'product', 'order', 'settings', 'dashboard', 'billing', 'analytics', 'image', 'status'];
     $dynamicPatterns = ['{id:\d+}', '{slug:[a-z-]+}', '{uuid:[0-9a-f]{8}}'];
-    
+
     $routes = [];
     $seenPatterns = [];
 
     while (count($routes) < $count) {
         $method = $methods[array_rand($methods)];
         $type = rand(0, 100);
-        
+
         if ($type < 50) {
             $path = '/' . $staticWords[array_rand($staticWords)] . '/' . $staticWords[array_rand($staticWords)] . '/' . rand(100, 9999);
         } elseif ($type < 75) {
@@ -104,7 +111,9 @@ function generateRandomRoutes(int $count): array
             }
         }
 
-        if ($hasCollision) continue;
+        if ($hasCollision) {
+            continue;
+        }
 
         foreach ($expandedPaths as $p) {
             $seenPatterns[$method . ':' . $p] = true;
@@ -124,10 +133,10 @@ function generateTestRequests(array $routes, int $count): array
 {
     $requests = [];
     $methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD'];
-    
+
     for ($i = 0; $i < $count; $i++) {
         $type = rand(0, 100);
-        
+
         if ($type < 70 && !empty($routes)) {
             $route = $routes[array_rand($routes)];
             $path = str_replace(['[', ']'], '', $route['path']);
@@ -145,7 +154,7 @@ function generateTestRequests(array $routes, int $count): array
             }
             $path = str_replace(['[', ']'], '', $route['path']);
             $path = str_replace(['{id:\d+}', '{slug:[a-z-]+}', '{uuid:[0-9a-f]{8}}'], ['123', 'test', 'abcdef12'], $path);
-            
+
             $requests[] = ['method' => $wrongMethod, 'uri' => $path];
         } else {
             $requests[] = ['method' => $methods[array_rand($methods)], 'uri' => '/non/existent/route/path/' . rand(1, 100)];
@@ -156,7 +165,30 @@ function generateTestRequests(array $routes, int $count): array
 }
 
 // ============================================================================
-// 3. SETUP FIXTURES // 3. SETUP FIXTURES // 3. SETUP FIXTURES & REGISTER BUILT-IN ENGINE (Safi/Wajha) REGISTER BUILT-IN ENGINE REGISTER BUILT-IN ENGINE
+// 3. COMPILER FEATURE VERIFICATION
+// ============================================================================
+
+echo "=== FEATURE VALIDATION SUITE ===\n";
+$featureCompiler = new WajhaCompiler();
+
+// 1. Shorthands & Shortcuts
+$featureCompiler->get('/users/{id:int}', 'UserShow');
+$featureCompiler->get('/files/{id:uuid}', 'FileShow');
+
+// 2. Groups
+$featureCompiler->addGroup('/api/v1', function (WajhaCompiler $api) {
+    $api->get('/products', 'ProductList');
+});
+
+$compiledFeatureData = $featureCompiler->compile();
+$featureDispatcher = new WajhaDispatcher($compiledFeatureData);
+
+assert($featureDispatcher->dispatch('GET', '/users/123')[0] === WajhaDispatcher::FOUND);
+assert($featureDispatcher->dispatch('GET', '/api/v1/products')[0] === WajhaDispatcher::FOUND);
+echo "SUCCESS: All compiler feature expansions validated.\n\n";
+
+// ============================================================================
+// 4. SETUP FIXTURES & REGISTER BUILT-IN ENGINE
 // ============================================================================
 
 echo "Generating {$config['num_routes']} route definitions...\n";
@@ -170,20 +202,20 @@ $registeredBenchmarks = [];
 // Wajha Router
 $registeredBenchmarks[] = [
     'name' => 'Safi/Wajha',
-    'setup' => function(array $routes) {
+    'setup' => function (array $routes) {
         $compiler = new WajhaCompiler();
         foreach ($routes as $route) {
             $compiler->addRoute($route['method'], $route['path'], $route['handler']);
         }
         return new WajhaDispatcher($compiler->compile());
     },
-    'dispatch' => function(WajhaDispatcher $dispatcher, array $req) {
+    'dispatch' => function (WajhaDispatcher $dispatcher, array $req) {
         return $dispatcher->dispatch($req['method'], $req['uri']);
     }
 ];
 
 // ============================================================================
-// 4. LOAD BENCHMARK ADAPTERS
+// 5. LOAD BENCHMARK ADAPTERS
 // ============================================================================
 
 $benchFiles = glob(__DIR__ . '/benchmarks/*Bench.php') ?: [];
@@ -197,7 +229,7 @@ foreach ($benchFiles as $file) {
 }
 
 // ============================================================================
-// 5. INTEGRITY SUITE
+// 6. INTEGRITY SUITE
 // ============================================================================
 
 if (class_exists(\FastRoute\RouteCollector::class)) {
@@ -215,8 +247,8 @@ if (class_exists(\FastRoute\RouteCollector::class)) {
         $frResult = $fastRouteDispatcher->dispatch($req['method'], $req['uri']);
         $wajhaResult = $wajhaDispatcher->dispatch($req['method'], $req['uri']);
 
-        $frStatus = $frResult[0] === FastRoute\Dispatcher::METHOD_NOT_ALLOWED 
-            ? WajhaDispatcher::METHOD_NOT_ALLOWED 
+        $frStatus = $frResult[0] === FastRoute\Dispatcher::METHOD_NOT_ALLOWED
+            ? WajhaDispatcher::METHOD_NOT_ALLOWED
             : $frResult[0];
 
         if ($frStatus !== $wajhaResult[0]) {
@@ -245,7 +277,7 @@ if (class_exists(\FastRoute\RouteCollector::class)) {
 }
 
 // ============================================================================
-// 6. BENCHMARK EXECUTION
+// 7. BENCHMARK EXECUTION
 // ============================================================================
 
 echo "=== PERFORMANCE SUITE ({$config['iterations']} Iterations) ===\n";
