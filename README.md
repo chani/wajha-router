@@ -64,4 +64,5 @@ switch ($result[0]) {
     case WajhaDispatcher::NOT_FOUND:
         http_response_code(404);
         break;
-}```
+}
+```
