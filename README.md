@@ -1,6 +1,6 @@
 # Safi/Wajha Router
 
-A fast, lightweight HTTP router for PHP 8.5+ combining $O(1)$ static hash map lookups with first-character bucketed PCRE2 regex evaluation for dynamic routes.
+A fast, lightweight HTTP router for PHP 8.3+ combining $O(1)$ static hash map lookups with first-character bucketed PCRE2 regex evaluation for dynamic routes.
 
 ---
 
@@ -16,7 +16,7 @@ A fast, lightweight HTTP router for PHP 8.5+ combining $O(1)$ static hash map lo
 
 ## Requirements
 
-* PHP 8.5 or higher
+* PHP 8.3 or higher
 * `pcre2` extension enabled
 
 ---
@@ -133,6 +133,73 @@ Optional segments marked with square brackets (`[/...]`) expand recursively at c
 ```php
 // Compiles into two discrete routes: /archive and /archive/{year:\d+}
 $compiler->get('/archive[/{year:int}]', 'ArchiveController@index');
+```
+
+---
+
+### 6. Reverse Routing (URL Generation)
+
+Route names can be attached during definition via the `name` argument. URL synthesis is handled by the standalone `WajhaUrlGenerator` class, keeping the inbound dispatcher completely unencumbered by reverse-mapping overhead.
+
+```php
+use Safi\Wajha\WajhaCompiler;
+use Safi\Wajha\WajhaDispatcher;
+use Safi\Wajha\WajhaUrlGenerator;
+
+$compiler = new WajhaCompiler();
+
+// Register named routes using named parameters
+$compiler->get('/users/{id:int}', 'UserController@show', name: 'users.show');
+$compiler->get('/posts/{slug:slug}', 'PostController@show', name: 'posts.show');
+
+$compiledData = $compiler->compile();
+
+// Inbound Dispatcher receives only matching tables
+$dispatcher = new WajhaDispatcher($compiledData);
+
+// Standalone URL Generator receives only reverse mapping table
+$generator = new WajhaUrlGenerator($compiledData['reverse']);
+
+// 1. Basic URL Interpolation
+echo $generator->generate('users.show', ['id' => 42]);
+// Output: /users/42
+
+// 2. Automatic Query String Generation for excess parameters
+echo $generator->generate('posts.show', [
+    'slug' => 'hello-world',
+    'ref' => 'newsletter',
+    'page' => 2
+]);
+// Output: /posts/hello-world?ref=newsletter&page=2
+```
+
+---
+
+### 7. Twig Template Integration
+
+To expose reverse URL generation within Twig templates, register a custom `path()` function with your Twig environment:
+
+```php
+use Safi\Wajha\WajhaUrlGenerator;
+use Twig\Environment;
+use Twig\TwigFunction;
+
+/** @var Environment $twig */
+/** @var WajhaUrlGenerator $generator */
+
+$twig->addFunction(new TwigFunction('path', function (string $name, array $params = []) use ($generator): string {
+    return $generator->generate($name, $params);
+}));
+```
+
+You can then generate URLs directly inside your `.twig` files:
+
+```twig
+{# Static and dynamic routes #}
+<a href="{{ path('users.show', {'id': user.id}) }}">User Profile</a>
+
+{# Passing additional query parameters #}
+<a href="{{ path('posts.index', {'page': 2, 'sort': 'desc'}) }}">Next Page</a>
 ```
 
 ---
