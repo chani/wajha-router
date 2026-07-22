@@ -8,7 +8,7 @@ A fast, lightweight HTTP router for PHP 8.5+ combining $O(1)$ static hash map lo
 
 * **O(1) Static Fast-Path:** Direct 2D array lookup (`$staticRoutes[$method][$uri]`) bypassing the PCRE2 engine entirely.
 * **First-Character Path Bucketing:** Dynamic routes are partitioned by URI prefix to avoid evaluating unrelated regex chunks.
-* **PCRE2 Chunked Matching:** Dynamic paths are evaluated in 30-route chunks using native duplicate group names `(?J)` and `(*MARK:N)` identifiers directly inside PCRE2.
+* **PCRE2 Positional Branch-Reset Matching:** Dynamic paths are evaluated in 30-route chunks using PCRE2 branch-reset groups `(?|...)` with positional capture extraction (`$matches[1]`) and `(*MARK:N)` identifiers to eliminate C-level named subpattern lookup overhead.
 * **Zero-Stack Dispatching:** Inlined execution path without VM function frame call stack overhead during dispatching.
 * **Compile-Time Transformations:** Type shorthands, enum constraints, and route groups compile down to raw PCRE2 patterns with no runtime overhead.
 
@@ -73,13 +73,13 @@ switch ($result[0]) {
 Pattern aliases expand during compilation into native PCRE2 patterns.
 
 ```php
-// Compiles to: /users/(?<id>\d+)
+// Compiles to: /users/(\d+)
 $compiler->get('/users/{id:int}', 'UserController@show');
 
 // Compiles to RFC 4122 UUID pattern
 $compiler->get('/files/{id:uuid}', 'FileController@show');
 
-// Compiles to: /posts/(?<slug>[a-z0-9-]+)
+// Compiles to: /posts/([a-z0-9-]+)
 $compiler->get('/posts/{slug:slug}', 'PostController@show');
 ```
 
@@ -143,20 +143,26 @@ Evaluated on PHP 8.5 over 100,000 request dispatch iterations against a 1,000 ro
 
 | Engine | Throughput | Avg Latency | Speed Ratio |
 | :--- | :--- | :--- | :--- |
-| **Safi/Wajha** | **447,171 req/s** | **2.236 µs** | **Baseline (1.00x)** |
-| **nikic/FastRoute** | 129,006 req/s | 7.752 µs | 3.47x slower |
-| **Phroute** | 120,615 req/s | 8.291 µs | 3.71x slower |
-| **Symfony Routing** | 107,682 req/s | 9.287 µs | 4.15x slower |
-| **AltoRouter** | 4,205 req/s | 237.793 µs | 106.33x slower |
+| **Safi/Wajha** | **446,189 req/s** | **2.241 µs** | **Baseline (1.00x)** |
+| **nikic/FastRoute** | 118,841 req/s | 8.415 µs | 3.75x slower |
+| **Phroute** | 115,164 req/s | 8.683 µs | 3.87x slower |
+| **Symfony Routing** | 103,832 req/s | 9.631 µs | 4.30x slower |
+| **AltoRouter** | 4,063 req/s | 246.140 µs | 109.82x slower |
 
 For detailed insights into the architecture, Zend VM micro-benchmarks, and real-world scenario trade-offs, see the write-up: [Writing a PHP 8.5 Router Faster Than FastRoute](https://blog.jeanbruenn.info/2026/07/21/writing-a-php-8-5-router-faster-than-fastroute/)
 
 ---
 
-## Running Benchmarks
+## Running Benchmarks & Tests
 
 ```bash
-composer require --dev nikic/fast-route symfony/routing phroute/phroute altorouter/altorouter
+# Install development dependencies
+composer require --dev
+
+# Run PHPUnit test suite
+./vendor/bin/phpunit tests
+
+# Run benchmark suites
 php tests/test.php
 php tests/run_realworld_bench.php
 ```

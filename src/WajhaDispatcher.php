@@ -47,7 +47,7 @@ class WajhaDispatcher
             return [self::FOUND, $this->staticRoutes[$method][$uri], []];
         }
 
-        // 2. Fast combined PCRE2 match for dynamic routes (Inlined)
+        // 2. Fast combined PCRE2 match for dynamic routes (Inlined Positional Capture)
         if (isset($this->dynamicRoutes[$method])) {
             $firstChar = $uri[1] ?? '/';
             $chunks = $this->dynamicRoutes[$method][$firstChar] ?? $this->dynamicRoutes[$method]['*'] ?? null;
@@ -59,16 +59,16 @@ class WajhaDispatcher
                         $varCount = count($routeData['vars']);
 
                         if ($varCount === 1) {
-                            $vars = [$routeData['vars'][0] => $matches[$routeData['vars'][0]]];
+                            $vars = [$routeData['vars'][0] => $matches[1]];
                         } elseif ($varCount === 2) {
                             $vars = [
-                                $routeData['vars'][0] => $matches[$routeData['vars'][0]],
-                                $routeData['vars'][1] => $matches[$routeData['vars'][1]],
+                                $routeData['vars'][0] => $matches[1],
+                                $routeData['vars'][1] => $matches[2],
                             ];
                         } else {
                             $vars = [];
-                            foreach ($routeData['vars'] as $varName) {
-                                $vars[$varName] = $matches[$varName];
+                            foreach ($routeData['vars'] as $i => $varName) {
+                                $vars[$varName] = $matches[$i + 1];
                             }
                         }
 
@@ -95,11 +95,16 @@ class WajhaDispatcher
                             $varCount = count($routeData['vars']);
 
                             if ($varCount === 1) {
-                                $vars = [$routeData['vars'][0] => $matches[$routeData['vars'][0]]];
+                                $vars = [$routeData['vars'][0] => $matches[1]];
+                            } elseif ($varCount === 2) {
+                                $vars = [
+                                    $routeData['vars'][0] => $matches[1],
+                                    $routeData['vars'][1] => $matches[2],
+                                ];
                             } else {
                                 $vars = [];
-                                foreach ($routeData['vars'] as $varName) {
-                                    $vars[$varName] = $matches[$varName];
+                                foreach ($routeData['vars'] as $i => $varName) {
+                                    $vars[$varName] = $matches[$i + 1];
                                 }
                             }
 

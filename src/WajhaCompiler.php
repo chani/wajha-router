@@ -229,7 +229,7 @@ class WajhaCompiler
                 }
 
                 $vars[] = $varName;
-                $regex .= '(?<' . $varName . '>' . $varRegex . ')';
+                $regex .= '(' . $varRegex . ')';
             } else {
                 $char = $path[$i];
                 $regex .= preg_quote($char, '~');
@@ -276,7 +276,7 @@ class WajhaCompiler
                     }
 
                     $compiledGroups[$firstChar][] = [
-                        'regex' => '~(?J)^(?:' . implode('|', $patterns) . ')$~',
+                        'regex' => '~^(?|' . implode('|', $patterns) . ')$~',
                         'routeMap' => $routeMap,
                     ];
                 }
