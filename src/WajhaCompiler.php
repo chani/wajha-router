@@ -41,7 +41,10 @@ class WajhaCompiler
     public function addGroup(string $prefix, callable $callback): void
     {
         $previousPrefix = $this->currentGroupPrefix;
-        $this->currentGroupPrefix = $previousPrefix . '/' . trim($prefix, '/');
+
+        // Clean and normalize slashes for the group prefix
+        $cleanPrefix = $this->normalizeSlashes('/' . trim($prefix, '/'));
+        $this->currentGroupPrefix = $previousPrefix . ($cleanPrefix === '/' ? '' : $cleanPrefix);
 
         $callback($this);
 
@@ -85,6 +88,7 @@ class WajhaCompiler
             $path = $this->currentGroupPrefix . '/' . ltrim($path, '/');
         }
 
+        $path = $this->normalizeSlashes($path);
         $path = $this->resolvePathShorthandsAndEnums($path);
         $expandedPaths = $this->expandOptionalPaths($path);
 
@@ -328,5 +332,16 @@ class WajhaCompiler
             'dynamic' => $compiledDynamic,
             'reverse' => $this->namedRoutes,
         ];
+    }
+    private function normalizeSlashes(string $path): string
+    {
+        if (!str_contains($path, '//')) {
+            return $path;
+        }
+
+        /** @var string */
+        return preg_replace_callback('~\{[^}]+\}|/+~', static function (array $matches): string {
+            return str_starts_with($matches[0], '{') ? $matches[0] : '/';
+        }, $path) ?? $path;
     }
 }

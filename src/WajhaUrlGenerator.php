@@ -50,7 +50,13 @@ class WajhaUrlGenerator
                 if (!array_key_exists($varName, $params)) {
                     throw new InvalidArgumentException("Missing required parameter '{$varName}' for route '{$name}'.");
                 }
-                $args[] = (string) $params[$varName];
+
+                $val = $params[$varName];
+                if (!is_scalar($val) && !$val instanceof \Stringable) {
+                    throw new InvalidArgumentException("Parameter '{$varName}' for route '{$name}' must be scalar or Stringable.");
+                }
+
+                $args[] = (string) $val;
                 unset($params[$varName]);
             }
 
