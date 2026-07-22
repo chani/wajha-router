@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Safi/Wajha Router
  * @author Jean Bruenn

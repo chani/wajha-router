@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Safi/Wajha Router
  * @author Jean Bruenn
@@ -67,6 +68,26 @@ final class WajhaDispatcherTest extends TestCase
                 $r->get('/resource/123/456', 'handler0');
             },
             'handler0',
+        ];
+
+        // --- UTF-8 / Multibyte URIs ---
+        yield 'multibyte utf-8 dynamic parameters' => [
+            'GET', '/kategorien/münchen',
+            function (WajhaCompiler $r) {
+                $r->get('/kategorien/{city:[a-z-äöüß]+}', 'handlerUtf8');
+            },
+            'handlerUtf8', ['city' => 'münchen'],
+        ];
+
+        // --- Mixed Static & Dynamic Allow Headers (RFC 9110) ---
+        yield 'nested route groups with trailing/leading slashes' => [
+            'GET', '/api/v1/users/42',
+            function (WajhaCompiler $r) {
+                $r->addGroup('//api///v1/', function (WajhaCompiler $api) {
+                    $api->get('/users/{id:int}', 'handlerGroup');
+                });
+            },
+            'handlerGroup', ['id' => '42'],
         ];
 
         yield 'multiple static routes' => [
@@ -251,7 +272,7 @@ final class WajhaDispatcherTest extends TestCase
             function (WajhaCompiler $r) {
                 $r->get('/resource', 'handler0');
             },
-            ['GET', 'HEAD'], // HEAD wird automatisch zu GET erlaubt
+            ['GET', 'HEAD'], // HEAD is allowed via GET fallback
         ];
 
         yield 'static route multiple methods allowed' => [

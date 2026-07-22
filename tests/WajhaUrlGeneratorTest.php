@@ -54,7 +54,36 @@ final class WajhaUrlGeneratorTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $generator->generate('users.show', []);
     }
+    public function testSupportsStringableObjectsInParameters(): void
+    {
+        $compiler = new WajhaCompiler();
+        $compiler->get('/users/{id:int}', 'UserShow', name: 'users.show');
+        $compiled = $compiler->compile();
 
+        $stringableId = new class {
+            public function __toString(): string
+            {
+                return '100';
+            }
+        };
+
+        $generator = new WajhaUrlGenerator($compiled['reverse']);
+        $url = $generator->generate('users.show', ['id' => $stringableId]);
+
+        $this->assertSame('/users/100', $url);
+    }
+
+    public function testThrowsExceptionForNonScalarParameter(): void
+    {
+        $compiler = new WajhaCompiler();
+        $compiler->get('/users/{id:int}', 'UserShow', name: 'users.show');
+        $compiled = $compiler->compile();
+
+        $generator = new WajhaUrlGenerator($compiled['reverse']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $generator->generate('users.show', ['id' => ['invalid', 'array']]);
+    }
     public function testThrowsExceptionOnUndefinedRoute(): void
     {
         $generator = new WajhaUrlGenerator([]);
