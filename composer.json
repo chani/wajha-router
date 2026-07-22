@@ -1,6 +1,6 @@
 {
     "name": "chani/wajha",
-    "description": "A fast, lightweight HTTP router for PHP 8.5+ combining O(1) static maps and bucketed PCRE2 regex evaluation.",
+    "description": "A fast, lightweight HTTP router for PHP 8.3+ combining O(1) static maps and bucketed PCRE2 regex evaluation.",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -19,7 +19,7 @@
         }
     },
     "require": {
-        "php": ">=8.5"
+        "php": ">=8.3"
     },
     "require-dev": {
         "altorouter/altorouter": "^2.0",
