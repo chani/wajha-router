@@ -22,6 +22,9 @@ class WajhaCompiler
     /** @var array<string, array<string, list<array{pattern: string, vars: list<string>, handler: mixed}>>> */
     private array $dynamicRoutes = [];
 
+    /** @var array<string, array{template: string, vars: list<string>}> */
+    private array $namedRoutes = [];
+
     private string $currentGroupPrefix = '';
 
     /**
@@ -45,37 +48,37 @@ class WajhaCompiler
         $this->currentGroupPrefix = $previousPrefix;
     }
 
-    public function get(string $path, mixed $handler): void
+    public function get(string $path, mixed $handler, ?string $name = null): void
     {
-        $this->addRoute('GET', $path, $handler);
+        $this->addRoute('GET', $path, $handler, $name);
     }
 
-    public function post(string $path, mixed $handler): void
+    public function post(string $path, mixed $handler, ?string $name = null): void
     {
-        $this->addRoute('POST', $path, $handler);
+        $this->addRoute('POST', $path, $handler, $name);
     }
 
-    public function put(string $path, mixed $handler): void
+    public function put(string $path, mixed $handler, ?string $name = null): void
     {
-        $this->addRoute('PUT', $path, $handler);
+        $this->addRoute('PUT', $path, $handler, $name);
     }
 
-    public function delete(string $path, mixed $handler): void
+    public function delete(string $path, mixed $handler, ?string $name = null): void
     {
-        $this->addRoute('DELETE', $path, $handler);
+        $this->addRoute('DELETE', $path, $handler, $name);
     }
 
-    public function patch(string $path, mixed $handler): void
+    public function patch(string $path, mixed $handler, ?string $name = null): void
     {
-        $this->addRoute('PATCH', $path, $handler);
+        $this->addRoute('PATCH', $path, $handler, $name);
     }
 
-    public function head(string $path, mixed $handler): void
+    public function head(string $path, mixed $handler, ?string $name = null): void
     {
-        $this->addRoute('HEAD', $path, $handler);
+        $this->addRoute('HEAD', $path, $handler, $name);
     }
 
-    public function addRoute(string $method, string $path, mixed $handler): void
+    public function addRoute(string $method, string $path, mixed $handler, ?string $name = null): void
     {
         $method = strtoupper($method);
         if ($this->currentGroupPrefix !== '') {
@@ -94,6 +97,31 @@ class WajhaCompiler
                 $this->registerDynamicRoute($method, $normalizedPath, $handler);
             }
         }
+
+        if ($name !== null) {
+            $this->registerNamedRoute($name, '/' . ltrim($path, '/'));
+        }
+    }
+
+    private function registerNamedRoute(string $name, string $path): void
+    {
+        $cleanPath = str_replace(['[', ']'], '', $path);
+        $vars = [];
+
+        /** @var string $template */
+        $template = preg_replace_callback(
+            '~\{([a-zA-Z0-9_]+)(?::[^}]+)?\}~',
+            static function (array $matches) use (&$vars): string {
+                $vars[] = $matches[1];
+                return '%s';
+            },
+            $cleanPath,
+        ) ?? $cleanPath;
+
+        $this->namedRoutes[$name] = [
+            'template' => $template,
+            'vars' => $vars,
+        ];
     }
 
     private function resolvePathShorthandsAndEnums(string $path): string
@@ -246,7 +274,8 @@ class WajhaCompiler
     /**
      * @return array{
      * static: array<string, array<string, mixed>>,
-     * dynamic: array<string, array<string, list<array{regex: string, routeMap: array<int|string, array{handler: mixed, vars: list<string>}>}>>>
+     * dynamic: array<string, array<string, list<array{regex: string, routeMap: array<int|string, array{handler: mixed, vars: list<string>}>}>>>,
+     * reverse: array<string, array{template: string, vars: list<string>}>
      * }
      */
     public function compile(): array
@@ -297,6 +326,7 @@ class WajhaCompiler
         return [
             'static' => $this->staticRoutes,
             'dynamic' => $compiledDynamic,
+            'reverse' => $this->namedRoutes,
         ];
     }
 }

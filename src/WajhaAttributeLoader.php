@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Safi/Wajha Router
  * @author Jean Bruenn
@@ -52,11 +53,14 @@ class WajhaAttributeLoader
                     $httpMethod = $instance->method ?? 'GET';
                     /** @var string $path */
                     $path = $instance->path;
+                    /** @var string|null $routeName */
+                    $routeName = property_exists($instance, 'name') ? $instance->name : null;
 
                     $compiler->addRoute(
                         strtoupper($httpMethod),
                         $path,
                         $handler,
+                        $routeName,
                     );
                 }
             }
