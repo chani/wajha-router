@@ -1,3 +1,7 @@
 /vendor/
 composer.lock
 .php-cs-fixer.cache
+.phpunit.result.cache
+.phpstan.cache/
+.psalm/
+.RectorCache/

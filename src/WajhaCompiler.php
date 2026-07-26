@@ -112,9 +112,8 @@ class WajhaCompiler
         $cleanPath = str_replace(['[', ']'], '', $path);
         $vars = [];
 
-        /** @var string $template */
         $template = preg_replace_callback(
-            '~\{([a-zA-Z0-9_]+)(?::[^}]+)?\}~',
+            '~\{(\w+)(?::[^}]+)?\}~',
             static function (array $matches) use (&$vars): string {
                 $vars[] = $matches[1];
                 return '%s';
@@ -131,13 +130,12 @@ class WajhaCompiler
     private function resolvePathShorthandsAndEnums(string $path): string
     {
         $path = strtr($path, self::SHORTHANDS);
-        /** @var string */
-        return preg_replace_callback('~\{([a-zA-Z0-9_]+):([\\\\a-zA-Z0-9_]+)\}~', static function (array $matches): string {
+        return preg_replace_callback('~\{(\w+):([a-zA-Z0-9_\\\\]+)\}~', static function (array $matches): string {
             $paramName = $matches[1];
             /** @var class-string $class */
-            $class = $matches[2];
+            $class = ltrim($matches[2], '\\');
 
-            if (enum_exists($class) && is_subclass_of($class, BackedEnum::class)) {
+            if (enum_exists($class) && is_a($class, BackedEnum::class, true)) {
                 $cases = array_map(
                     static fn(BackedEnum $case): string => preg_quote((string) $case->value, '~'),
                     $class::cases(),
@@ -151,6 +149,7 @@ class WajhaCompiler
 
     /**
      * @return array<int, string>
+     * @psalm-suppress UnusedVariable
      */
     private function expandOptionalPaths(string $route): array
     {
@@ -171,8 +170,10 @@ class WajhaCompiler
                 $char = $str[$i];
                 if ($char === '{') {
                     $inParam++;
-                } elseif ($char === '}' && $inParam > 0) {
-                    $inParam--;
+                } elseif ($char === '}') {
+                    if ($inParam > 0) {
+                        $inParam--;
+                    }
                 } elseif ($inParam === 0) {
                     if ($char === '[') {
                         if ($optDepth === 0) {
@@ -308,8 +309,10 @@ class WajhaCompiler
                         ];
                     }
 
+                    $regexPattern = '~^(?|' . implode('|', $patterns) . ')$~';
+
                     $compiledGroups[$firstChar][] = [
-                        'regex' => '~^(?|' . implode('|', $patterns) . ')$~',
+                        'regex' => $regexPattern,
                         'routeMap' => $routeMap,
                     ];
                 }
@@ -333,13 +336,13 @@ class WajhaCompiler
             'reverse' => $this->namedRoutes,
         ];
     }
+
     private function normalizeSlashes(string $path): string
     {
         if (!str_contains($path, '//')) {
             return $path;
         }
 
-        /** @var string */
         return preg_replace_callback('~\{[^}]+\}|/+~', static function (array $matches): string {
             return str_starts_with($matches[0], '{') ? $matches[0] : '/';
         }, $path) ?? $path;

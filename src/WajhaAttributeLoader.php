@@ -12,12 +12,8 @@ declare(strict_types=1);
 
 namespace Safi\Wajha;
 
-use ReflectionClass;
-use ReflectionMethod;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use RegexIterator;
-use SplFileInfo;
 
 class WajhaAttributeLoader
 {
@@ -27,19 +23,15 @@ class WajhaAttributeLoader
             return;
         }
 
-        $reflect = new ReflectionClass($className);
-        foreach ($reflect->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+        $reflect = new \ReflectionClass($className);
+        foreach ($reflect->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
             foreach ($method->getAttributes() as $attribute) {
-                /** @var object $instance */
                 $instance = $attribute->newInstance();
                 if (property_exists($instance, 'path') && property_exists($instance, 'method')) {
-                    /** @var array{handler: array{string, string}, public?: bool, middleware?: array<mixed>}|array{string, string} $handler */
                     $handler = [$className, $method->getName()];
 
                     if (property_exists($instance, 'public') || property_exists($instance, 'middleware')) {
-                        /** @var bool $isPublic */
-                        $isPublic = property_exists($instance, 'public') ? $instance->public : false;
-                        /** @var array<mixed> $middleware */
+                        $isPublic = property_exists($instance, 'public') && $instance->public === true;
                         $middleware = property_exists($instance, 'middleware') && is_array($instance->middleware) ? $instance->middleware : [];
 
                         $handler = [
@@ -49,12 +41,9 @@ class WajhaAttributeLoader
                         ];
                     }
 
-                    /** @var string $httpMethod */
-                    $httpMethod = $instance->method ?? 'GET';
-                    /** @var string $path */
-                    $path = $instance->path;
-                    /** @var string|null $routeName */
-                    $routeName = property_exists($instance, 'name') ? $instance->name : null;
+                    $httpMethod = property_exists($instance, 'method') && is_string($instance->method) ? $instance->method : 'GET';
+                    $path = property_exists($instance, 'path') && is_string($instance->path) ? $instance->path : '/';
+                    $routeName = property_exists($instance, 'name') && is_string($instance->name) ? $instance->name : null;
 
                     $compiler->addRoute(
                         strtoupper($httpMethod),
@@ -74,12 +63,17 @@ class WajhaAttributeLoader
         }
 
         $dirIterator = new RecursiveDirectoryIterator($directory);
+        /** @psalm-suppress InvalidTemplateParam */
         $iterator = new RecursiveIteratorIterator($dirIterator);
-        /** @var RegexIterator<int, SplFileInfo, RecursiveIteratorIterator<RecursiveDirectoryIterator>> $regex */
-        $regex = new RegexIterator($iterator, '/\.php$/i');
 
-        /** @var SplFileInfo $file */
-        foreach ($regex as $file) {
+        /** @var \SplFileInfo $file */
+        foreach ($iterator as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
             $filePath = $file->getPathname();
             $content = file_get_contents($filePath);
             if ($content === false) {
