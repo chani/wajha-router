@@ -6,7 +6,7 @@
     "authors": [
         {
             "name": "Jean Bruenn"
-	}
+        }
     ],
     "autoload": {
         "psr-4": {
@@ -14,7 +14,7 @@
         }
     },
     "autoload-dev": {
-	"psr-4": {
+        "psr-4": {
             "Safi\\Wajha\\Tests\\": "tests/"
         }
     },
@@ -35,5 +35,17 @@
     "config": {
         "sort-packages": true,
         "optimize-autoloader": true
-    }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../safi-*"
+        },
+        {
+            "type": "path",
+            "url": "../wajha-router"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
